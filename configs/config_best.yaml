@@ -1,0 +1,13 @@
+baseline_correct: false
+batch_size: 109
+data_dir: /content/extracted_data
+device: cuda:0
+epochs: 80
+highcut: 30
+lowcut: 0.5
+lr: 0.0035367900750609984
+model_path: null
+new_fs: 128
+num_workers: 4
+seed: 1234
+use_wandb: false
