@@ -11,3 +11,4 @@ new_fs: 128
 num_workers: 4
 seed: 1234
 use_wandb: false
+feature_extraction: false

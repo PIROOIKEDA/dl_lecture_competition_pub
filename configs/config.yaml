@@ -1,6 +1,6 @@
-batch_size: 128
-epochs: 20
-lr: 0.001
+batch_size: 64
+epochs: 80
+lr: 0.003
 
 device: cuda:0
 num_workers: 4
@@ -10,10 +10,11 @@ use_wandb: False
 data_dir: /content/extracted_data
 
 # Preprocessing parameters
-new_fs: 128
+new_fs: 256
 lowcut: 0.5
-highcut: 40
-baseline_correct: True
+highcut: 30
+baseline_correct: False
+feature_extraction: False
 
 # Evaluation
 model_path: /content/drive/My Drive/Colab Notebooks/DLBasics2023_colab/最終課題/MEG/dl_lecture_competition_pub/saved_model.pth
