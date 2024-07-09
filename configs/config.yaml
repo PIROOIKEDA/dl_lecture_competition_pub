@@ -4,16 +4,16 @@ lr: 0.003
 
 device: cuda:0
 num_workers: 4
-seed: 1234
+seed: 42
 use_wandb: False
 
 data_dir: /content/extracted_data
 
 # Preprocessing parameters
-new_fs: 256
+new_fs: 300
 lowcut: 0.5
 highcut: 30
-baseline_correct: False
+baseline_correct: True
 feature_extraction: False
 
 # Evaluation
