@@ -2,12 +2,63 @@
 #フーリエ変換とARモデルによる特徴量を追加したEnhancedEEGDatasetを追加
 #chunkに分けてロード
 
+
+
 import os
 import torch
 import numpy as np
 from scipy.signal import resample, butter, filtfilt, welch
 from statsmodels.tsa.ar_model import AutoReg
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader, Subset, Sampler, default_collate
+import random
+
+class CustomDataLoader(DataLoader):
+    def __init__(self, dataset, num_subjects, batch_size, shuffle=True, **kwargs):
+        super().__init__
+        self.dataset = dataset
+        self.num_subjects = num_subjects
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+        self.subject_indices = {i: [] for i in range(num_subjects)}
+        self._prepare_indices()
+        print(f"Initialized CustomDataLoader with batch_size={self.batch_size} and num_subjects={self.num_subjects}")  # デバッグプリント文
+
+    def _prepare_indices(self):
+        for idx in range(len(self.dataset)):
+            _, _, subject_id = self.dataset[idx]
+            self.subject_indices[subject_id.item()].append(idx)
+
+    def __iter__(self):
+        if self.shuffle:
+            for subject_id in self.subject_indices:
+                random.shuffle(self.subject_indices[subject_id])
+
+        min_samples = min(len(indices) for indices in self.subject_indices.values())
+        print(f"Min samples per subject: {min_samples}")  # デバッグプリント文
+        print(f"Batch size: {self.batch_size}, Num subjects: {self.num_subjects}")  # デバッグプリント文
+        num_batches = min_samples // (self.batch_size // self.num_subjects)
+        print(f"Number of batches: {num_batches}")  # デバッグプリント文
+
+        batch_indices = []
+        for i in range(num_batches):
+            batch = []
+            for subject_id in range(self.num_subjects):
+                start = i * (self.batch_size // self.num_subjects)
+                end = start + (self.batch_size // self.num_subjects)
+                selected_indices = self.subject_indices[subject_id][start:end]
+                batch.extend(selected_indices)
+            random.shuffle(batch)
+            batch_indices.append(batch)
+
+        random.shuffle(batch_indices)
+        for batch in batch_indices:
+            yield default_collate([self.dataset[idx] for idx in batch])
+
+    def __len__(self):
+        min_samples = min(len(indices) for indices in self.subject_indices.values())
+        return min_samples // (self.batch_size // self.num_subjects)
+
+
 
 class EnhancedEEGDataset(Dataset):
     def __init__(self, split: str, data_dir: str = "data", chunk_size=5000, new_fs=None, lowcut=None, highcut=None, baseline_correct=False, feature_extraction=False) -> None:
@@ -168,3 +219,105 @@ class EnhancedEEGDataset(Dataset):
     @property
     def seq_len(self) -> int:
         return self.data.shape[2]
+
+class ThingsMEGDataset(Dataset):
+    def __init__(self, split: str, data_dir: str = "data", new_fs=None, lowcut=None, highcut=None, baseline_correct=False) -> None:
+        """
+        Initialize dataset and load data.
+        """
+        super().__init__()
+
+        assert split in ["train", "val", "test"], f"Invalid split: {split}"
+        self.split = split
+        self.num_classes = 1854
+
+        # 各ファイルの読み込みにプリント文を追加
+        # Load the data files
+        try:
+            print(f"Loading {split}_X.pt")
+            file_path = os.path.join(data_dir, f"{split}_X.pt")
+            print(f"Checking file existence: {os.path.exists(file_path)}")  # ファイルの存在確認
+            print(f"File size: {os.path.getsize(file_path) / (1024 * 1024)} MB")  # ファイルのサイズ確認
+
+            if not os.path.exists(file_path):
+                raise FileNotFoundError(f"{file_path} does not exist.")
+            self.X = torch.load(file_path)
+            print(f"Loaded {split}_X.pt")
+
+            print(f"Loading {split}_subject_idxs.pt")
+            self.subject_idxs = torch.load(os.path.join(data_dir, f"{split}_subject_idxs.pt"))
+            print(f"Loaded {split}_subject_idxs.pt")
+            file_path = os.path.join(data_dir, f"{split}_subject_idxs.pt")
+            if not os.path.exists(file_path):
+                raise FileNotFoundError(f"{file_path} does not exist.")
+            self.subject_idxs = torch.load(file_path)
+
+            if split in ["train", "val"]:
+                print(f"Loading {split}_y.pt")
+                self.y = torch.load(os.path.join(data_dir, f"{split}_y.pt"))
+                print(f"Loaded {split}_y.pt")
+                file_path = os.path.join(data_dir, f"{split}_y.pt")
+                if not os.path.exists(file_path):
+                    raise FileNotFoundError(f"{file_path} does not exist.")
+                self.y = torch.load(file_path)
+                assert len(torch.unique(self.y)) == self.num_classes, "Number of classes do not match."
+
+        except Exception as e:
+            print(f"An error occurred while loading data: {e}")
+            raise
+
+        print(f"Loaded dataset: {split} with {len(self.X)} samples.")
+
+    def preprocess(self, new_fs=None, lowcut=None, highcut=None, baseline_correct=False, old_fs=200):
+        """
+        Preprocess the data.
+        """
+        X_np = self.X.numpy()
+
+        if baseline_correct:
+            print("Applying baseline correction...")
+            baseline = np.mean(X_np, axis=-1, keepdims=True)
+            X_np = X_np - baseline
+
+        if new_fs is not None and new_fs != old_fs:
+            print(f"Resampling from {old_fs}Hz to {new_fs}Hz...")
+            num_samples = int(X_np.shape[-1] * (new_fs / old_fs))
+            X_np = resample(X_np, num_samples, axis=-1)
+
+        if lowcut is not None:
+            print(f"Applying high-pass filter with cutoff {lowcut}Hz...")
+            nyquist = 0.5 * new_fs if new_fs is not None else 0.5 * old_fs
+            low = lowcut / nyquist
+            b, a = butter(5, low, btype='high')
+            X_np = filtfilt(b, a, X_np, axis=-1)
+
+        if highcut is not None:
+            print(f"Applying low-pass filter with cutoff {highcut}Hz...")
+            nyquist = 0.5 * new_fs if new_fs is not None else 0.5 * old_fs
+            high = highcut / nyquist
+            b, a = butter(5, high, btype='low')
+            X_np = filtfilt(b, a, X_np, axis=-1)
+
+        self.X = torch.tensor(X_np)
+
+    def __len__(self) -> int:
+        return len(self.X)
+
+    def __getitem__(self, i):
+        if hasattr(self, "y"):
+            return self.X[i], self.y[i], self.subject_idxs[i]
+        else:
+            return self.X[i], self.subject_idxs[i]
+
+
+    @property
+    def num_channels(self) -> int:
+        return self.X.shape[1]
+
+
+    @property
+    def seq_len(self) -> int:
+        return self.X.shape[2]
+
+
+
