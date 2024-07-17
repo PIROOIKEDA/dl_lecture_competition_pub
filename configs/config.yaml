@@ -1,20 +1,31 @@
 batch_size: 64
-epochs: 80
-lr: 0.003
+epochs: 200
+pre_epochs: 20
+lr: 0.004
+pre_lr: 0.008
 
 device: cuda:0
-num_workers: 4
+num_workers: 8
 seed: 42
 use_wandb: False
 
 data_dir: /content/extracted_data
 
 # Preprocessing parameters
-new_fs: 300
-lowcut: 0.5
-highcut: 30
-baseline_correct: True
-feature_extraction: False
+new_fs: 200.0
+lowcut: 0.0
+highcut: None
+baseline_correct: False
+
+front_cut: 40
+tail_cut : 282
+
+
+transformer_out_channels: 64
+transformer_hidden_dim: 128
+num_heads: 8
+num_layers: 2
+transformer_k: 32
 
 # Evaluation
-model_path: /content/drive/My Drive/Colab Notebooks/DLBasics2023_colab/最終課題/MEG/dl_lecture_competition_pub/saved_model.pth
+model_path: "/content/drive/My Drive/Colab Notebooks/DLBasics2023_colab/最終課題/MEG/dl_lecture_competition_pub/outputs/2024-07-17/01-12-36/"

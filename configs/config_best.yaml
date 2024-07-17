@@ -1,14 +1,17 @@
 baseline_correct: false
-batch_size: 109
+batch_size: 256
 data_dir: /content/extracted_data
 device: cuda:0
 epochs: 80
-highcut: 30
-lowcut: 0.5
-lr: 0.0035367900750609984
+front_cut: 39
+tail_cut : 282
+highcut: 24.580073255999626
+lowcut: 0.0
+lr: 0.004
+lstm_hidden_dim: 131
 model_path: null
-new_fs: 128
+new_fs: 200.0
 num_workers: 4
-seed: 1234
+out_channels: 84
+seed: 42
 use_wandb: false
-feature_extraction: false
