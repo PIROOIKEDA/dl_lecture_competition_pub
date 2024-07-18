@@ -8,9 +8,6 @@ import random
 from PIL import Image
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
 
-import random
-import torch
-from torch.utils.data import DataLoader, default_collate
 
 class CustomDataLoader(DataLoader):
     def __init__(self, dataset, num_subjects, batch_size, shuffle=True, pretrain=True, **kwargs):
@@ -90,7 +87,7 @@ def preprocess_chunk(chunk, new_fs=None, lowcut=None, highcut=None, baseline_cor
         high = highcut / nyquist
         b, a = butter(5, high, btype='low')
         X_np = filtfilt(b, a, X_np, axis=-1)
-
+    
     X_np = X_np.copy()  # Create a copy to avoid modifying the original array
     X_tensor = torch.tensor(X_np, dtype=torch.float32)  # Convert to float32
     del X_np  # Free up memory by deleting the original numpy array

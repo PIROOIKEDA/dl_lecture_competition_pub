@@ -109,4 +109,3 @@ class ConvTransformerClassifier(nn.Module):
             batch_size = X.size(0)
             out_dim = self.head[0].out_features
             return torch.zeros((batch_size, out_dim), device=X.device)
-
