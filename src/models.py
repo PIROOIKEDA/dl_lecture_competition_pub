@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 
 class ChannelAttention(nn.Module):
-    def __init__(self, in_channels, reduction_ratio=16):
+    def __init__(self, in_channels, reduction_ratio=64):
         super(ChannelAttention, self).__init__()
         self.reduced_channels = max(1, in_channels // reduction_ratio)
         self.avg_pool = nn.AdaptiveAvgPool1d(1)
@@ -36,7 +36,7 @@ class SubjectSpecificConvBlock(nn.Module):
         self.batchnorm1 = nn.BatchNorm1d(out_dim)
         self.batchnorm2 = nn.BatchNorm1d(out_dim)
         self.dropout = nn.Dropout(p_drop)
-        self.channel_attention0 = ChannelAVGAttention(128)
+        self.channel_attention0 = ChannelAttention(128)
         self.channel_attention1 = ChannelAttention(out_dim)
         self.channel_attention2 = ChannelAttention(out_dim)
 

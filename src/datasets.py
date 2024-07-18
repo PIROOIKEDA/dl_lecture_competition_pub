@@ -97,7 +97,7 @@ def preprocess_chunk(chunk, new_fs=None, lowcut=None, highcut=None, baseline_cor
     return X_tensor
 
 class ThingsMEGDataset(Dataset):
-    def __init__(self, split: str, data_dir: str = "data", image_dir: str = "/content/extracted_image/Images", front_cut: int = 40, tail_cut=282, pretrain=True, new_fs=None, lowcut=None, highcut=None, baseline_correct=False, old_fs=200, chunk_size=1000) -> None:
+    def __init__(self, split: str, data_dir: str = "data", image_dir: str = "/content/extracted_image/Images", front_cut: int = 40, tail_cut=282, pretrain=True, new_fs=None, lowcut=None, highcut=None, baseline_correct=False, old_fs=200, chunk_size=10000) -> None:
         super().__init__()
         assert split in ["train", "val", "test"], f"Invalid split: {split}"
         self.split = split
